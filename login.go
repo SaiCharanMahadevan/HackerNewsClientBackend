@@ -14,16 +14,6 @@ var cookieHandler = securecookie.New(
 	securecookie.GenerateRandomKey(64),
 	securecookie.GenerateRandomKey(32))
 
-func getUserName(request *http.Request) (userName string) {
-	if cookie, err := request.Cookie("session"); err == nil {
-		cookieValue := make(map[string]string)
-		if err = cookieHandler.Decode("session", cookie.Value, &cookieValue); err == nil {
-			userName = cookieValue["name"]
-		}
-	}
-	return userName
-}
-
 func setSession(userName string, response http.ResponseWriter) {
 	value := map[string]string{
 		"name": userName,
@@ -48,6 +38,15 @@ func clearSession(response http.ResponseWriter) {
 	http.SetCookie(response, cookie)
 }
 
+func getUserName(request *http.Request) (userName string) {
+	if cookie, err := request.Cookie("session"); err == nil {
+		cookieValue := make(map[string]string)
+		if err = cookieHandler.Decode("session", cookie.Value, &cookieValue); err == nil {
+			userName = cookieValue["name"]
+		}
+	}
+	return userName
+}
 // login handler
 
 func loginHandler(response http.ResponseWriter, request *http.Request) {
@@ -57,12 +56,10 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	if name == "sai" && pass == "sai" {
 		// .. check credentials ..
 		setSession(name, response)
-		redirectTarget = "/internal"
+		redirectTarget = "/hackerNews"
 	}
 	http.Redirect(response, request, redirectTarget, 302)
 }
-
-// logout handler
 
 func logoutHandler(response http.ResponseWriter, request *http.Request) {
 	clearSession(response)
@@ -86,16 +83,16 @@ func indexPageHandler(response http.ResponseWriter, request *http.Request) {
 	fmt.Fprintf(response, indexPage)
 }
 
-// internal page
+// hackerNews page
 
-const internalPage = `
+const hackerNewsPage = `
 <h1>%s</h1>
 <hr>
 <small>User: %s</small>
 <div>
 	Click <a href="%s"> here </a> to access the link
 </div>
-<form method="post" action="/internal">
+<form method="post" action="/hackerNews">
     <button type="submit">Next</button>
 </form>
 <form method="post" action="/logout">
@@ -103,7 +100,7 @@ const internalPage = `
 </form>
 `
 
-func internalPageHandler(response http.ResponseWriter, request *http.Request) {
+func hackerNewsPageHandler(response http.ResponseWriter, request *http.Request) {
 	client := gophernews.NewClient()
   topStories, _ := client.GetTop100();
   // currentStory, _ := client.GetMaxItem();
@@ -137,7 +134,7 @@ func internalPageHandler(response http.ResponseWriter, request *http.Request) {
 		fmt.Println(test.Type)
 		fmt.Println(test.URL)
 		fmt.Println(test.ID)
-		fmt.Fprintf(response, internalPage, test.Title, test.By, test.URL)
+		fmt.Fprintf(response, hackerNewsPage, test.Title, test.By, test.URL)
 	} else {
 		http.Redirect(response, request, "/", 302)
 	}
@@ -150,7 +147,7 @@ var router = mux.NewRouter()
 func main() {
 
 	router.HandleFunc("/", indexPageHandler)
-	router.HandleFunc("/internal", internalPageHandler)
+	router.HandleFunc("/hackerNews", hackerNewsPageHandler)
 
 	router.HandleFunc("/login", loginHandler).Methods("POST")
 	router.HandleFunc("/logout", logoutHandler).Methods("POST")
